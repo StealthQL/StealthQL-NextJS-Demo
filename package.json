@@ -1,0 +1,30 @@
+{
+  "name": "support-is-blind",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "dev:stealth": "concurrently -n stealth,next -c blue,green \"npx stealthql dev --port 8787\" \"next dev\"",
+    "stealth:setup": "npx stealthql setup next --typescript",
+    "stealth:test": "npx stealthql test policies",
+    "stealth:dev": "stealthql dev",
+    "stealth:reset": "stealthql dev --once --reset",
+    "stealth:test:full": "stealthql test security",
+    "stealth:deploy:split": "stealthql deploy split"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "stealthql": "^0.2.10"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "concurrently": "^9.0.0",
+    "typescript": "^5.6.0"
+  }
+}

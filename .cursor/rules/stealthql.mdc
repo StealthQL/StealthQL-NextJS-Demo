@@ -1,0 +1,157 @@
+---
+description: StealthQL backend capsule rules
+alwaysApply: true
+---
+
+# StealthQL Cursor Rules
+
+This repo uses StealthQL, a repo-native backend capsule runtime.
+
+Do not assume GraphQL, Apollo, Prisma, Supabase, Firebase, or a hosted database dashboard. Do not search for GraphQL endpoints or resolvers unless the user explicitly asks for GraphQL.
+
+Use this model:
+
+- Backend source files are `stealth.schema.*`, `stealth.auth.*`, `stealth.functions.*`, `stealth.storage.*`, `stealth.sync.*`, `stealth.shares.*`, `stealth.compliance.*`, `stealth.seeds.*`, and `stealth.policy.test.*`.
+- Generated capsule file is `.stealthql/capsule.json`; do not edit it or commit `.stealthql/`.
+- Private runtime state lives outside the repo by default. If `STEALTHQL_DATA_DIR` is set, keep it outside the project and deploy output.
+- Local runtime URL is printed by `npx stealthql dev`; do not assume a fixed port.
+- Next.js browser integration uses `/api/stealthql/*` as a same-origin proxy.
+- Browser app code should import from `stealthql/next/client`; server routes and Server Components should import from `stealthql/next/server`.
+- StealthQL ships TypeScript declarations. Do not add broad `declare module "*.js"` workarounds; they break Next route type checking.
+- For non-Next apps, use `stealthql/client` for browser/app code, `stealthql/vite`, `stealthql/sveltekit`, or `stealthql/astro` for framework proxy adapters, `stealthql/server` for generic server code, and `stealthql/schema` for typed capsule authoring.
+- `npx stealthql capsule build` emits `.stealthql/client.d.ts`; include it in TypeScript projects for schema-specific table and mutation types.
+- If upgrading StealthQL or a consumer app across versions, read `CHANGELOG.md` before making code or schema changes.
+- Keep `stealth.schema.request.json` in the app root only while it is the active schema request. Packaged samples live under `examples/`; applied backend truth is `stealth.schema.*`.
+- Query rows include `$key` plus `$handles.read`, `$handles.update`, and `$handles.delete`. Use `$key` for UI identity and `handle: row.$handles.update/delete` for user mutations; do not build user flows around raw ids or put handles in URLs.
+- Share portal URL tokens should be exchanged once for share-scoped HttpOnly cookies and removed from the URL. Production proposal/CSV requests should rely on the cookie, not raw actor fields.
+- Use `createStealthServiceClient` plus `serviceAccounts` for Stripe webhooks, signup provisioning, cron, and background jobs. Never use demo actors like `alice` as service accounts.
+- Use narrow service scopes such as `provisioning:write`, `projects:read`, `projects:write`, `projects:delete`, `billing:read`, `billing:write`, `billing:delete`, `share:issue`, and `share:manage`.
+- Session actors carry `activeOrgId`; use `actor.activeOrgId` for tenant boundaries. Do not use every `actor.orgIds` value unless building an explicit cross-business view.
+- Magic-link auth can return `requiresOrgSelection: true`; show an org picker and verify with `stealth.auth.verifyMagicLink(token, { orgId })`.
+- If a user cannot receive email, use one-time recovery codes with `stealth.auth.createRecoveryCode(...)` and `stealth.auth.verifyRecoveryCode(...)`; do not add passwords or raw actor impersonation.
+- DigitalOcean deployment docs live at `docs/DIGITALOCEAN_DEPLOYMENT.md`; the hardened Ubuntu bootstrap script is `scripts/digitalocean-ubuntu-setup.sh`.
+- Vercel frontend + DigitalOcean runtime docs live at `docs/VERCEL_DIGITALOCEAN_SPLIT.md`; plan the split with `npx stealthql deploy split --frontend-url https://app.example.com --backend-url https://api.example.com --write`.
+
+StealthQL offers:
+
+- Local PGlite-backed capsule runtime, generated TypeScript client types, local auth emulator, magic links, recovery codes, invites, and org selection.
+- Policy-bound row handles for browser/mobile mutations, service clients for trusted jobs, backend functions with side-effect ports, policy-bound storage buckets, sync shapes, table/row shares, proposal mode, CSV round trips, portals, compliance evidence packs, export/eject bundles, policy tests, security tests, and DigitalOcean split/single deploy plans.
+
+Schema changes:
+
+- Do not add `organizations`, `users`, or `memberships` to app schema requests; StealthQL generates secure auth/org tables.
+- When one table belongs to another, use a required indexed text field such as `Customer Id`, `Project Id`, `Order Id`, `Job Id`, or `Invoice Id`; do not invent unsupported foreign-key types.
+
+Raw ID mutation:
+
+- Browser/mobile update and delete flows must use row handles.
+- Only trusted server code should use `stealth.unsafe.mutateById(...)`, and only when the user explicitly needs an escape hatch.
+- Never put row handles in URLs or logs.
+
+Shares and portals:
+
+- Use `stealth.shares.*` for table/row shares; shares are delegated grants, not org memberships.
+- Use share APIs for `readShare`, proposals, accept/reject, CSV export, and CSV import.
+- CSV imports become proposals, not direct mutations.
+- Hosted share portals use share tokens or share-scoped HttpOnly cookies; production portal forms must not post raw local actors.
+
+Backend functions and ports:
+
+- Define backend behavior in `stealth.functions.*`.
+- Functions receive `ctx` with actor, query, mutate, ports, capsule, and mode.
+- Use `ctx.ports` for email, webhooks, payments, and side effects; do not hand-roll `NODE_ENV` branches for side effects.
+- Function execution is governed by `stealth.auth.*` `functionPolicies`.
+
+Storage:
+
+- Define buckets in `stealth.storage.*`; do not build custom upload tables unless the user asks.
+- Use `stealth.storage.*` for list, upload, get, and delete.
+- Bucket policies use `actor.activeOrgId` and `actor.activeMembership` just like table policies.
+
+Sync/data shapes:
+
+- Use `stealth.shape(name)` for reusable policy-bound app data.
+- Define shapes in `stealth.sync.*`; shapes can restrict fields and read scope.
+- Prefer shapes, generated clients, and functions over ad hoc SQL for app-facing data.
+
+Compliance:
+
+- Define evidence mappings in `stealth.compliance.*` for tables, storage buckets, shares, functions, and data classes.
+- Use `npx stealthql audit-report --framework soc2-cc7 --out evidence/soc2-cc7` to generate JSON/Markdown evidence bundles from the capsule and ledger.
+- Treat audit reports as compliance-readiness evidence packs, not automatic certification or legal advice.
+
+Security tests are part of the product. Do not skip them. They should catch tenant leaks, share leaks, hidden-field exposure, raw-ID mutation bugs, row-handle misuse, CSV proposal safety, and production deployment misconfigurations.
+
+Use this client for local demos only. Do not use `actor: "alice"` in production code.
+
+```js
+import { createStealthNextClient } from "stealthql/next/client";
+
+const stealth = createStealthNextClient({ actor: "alice" });
+
+await stealth.query("projects");
+await stealth.sql("select id, name from projects;");
+await stealth.mutate("projects", "insert", {
+  id: "proj_new",
+  orgId: "org_acme",
+  ownerId: "user_alice",
+  name: "New Project",
+  visibility: "private"
+});
+await stealth.auth.signInAs("alice");
+```
+
+For Server Components, server actions, or API routes:
+
+```js
+import { headers } from "next/headers";
+import { createStealthServerClient } from "stealthql/next/server";
+
+const stealth = createStealthServerClient({
+  headers: await headers()
+});
+await stealth.query("projects");
+```
+
+For schema/auth changes, write `stealth.schema.request.json`, then run:
+
+```powershell
+npx stealthql schema preview --file stealth.schema.request.json
+npx stealthql schema apply --file stealth.schema.request.json --test
+```
+
+After backend changes, run:
+
+```powershell
+npx stealthql test policies
+npx stealthql test security
+```
+
+For DigitalOcean Droplets:
+
+- Run `npx stealthql deploy self` before deploying.
+- For an interactive deploy menu, run `npx stealthql deploy`.
+- For Vercel frontend + DigitalOcean runtime, run `npx stealthql deploy split --frontend-url https://app.example.com --backend-url https://api.example.com --write`.
+- Keep one repo with two targets: Vercel deploys the Next app and `/api/stealthql/*` proxy; DigitalOcean deploys the same repo as the capsule runtime.
+- In Vercel set server-only `STEALTHQL_URL=https://api.example.com` and public `NEXT_PUBLIC_STEALTHQL_API=/api/stealthql`.
+- For one Droplet running both the website and runtime, run `npx stealthql deploy single --domain https://app.example.com --repo <repo> --write` or set `DEPLOY_WEB=true`; nginx should proxy to Next.js on `127.0.0.1:3000`, and Next should call StealthQL privately on `127.0.0.1:8787`.
+- Use `APP_REPO`, `APP_NAME`, `DOMAIN`, `LETSENCRYPT_EMAIL`, and optionally `RUN_SECURITY_TESTS=true` with `scripts/digitalocean-ubuntu-setup.sh`.
+- Preferred flow is `/root/stealthql-do-setup.sh plan`, then deploy, then `/root/stealthql-do-setup.sh doctor`.
+- The agent should fill variables and run the audited script; do not improvise root-level SSH, firewall, nginx, systemd, certbot, backup, or chmod/chown commands.
+- Keep the runtime behind nginx: public traffic goes to 80/443, nginx proxies to `127.0.0.1:<STEALTHQL_PORT>`.
+- Runtime state belongs in `/var/lib/stealthql/<app>` or another `STEALTHQL_DATA_DIR` outside the repo.
+- Secrets belong in `/etc/stealthql/<app>.env`; never put service tokens in `NEXT_PUBLIC_*`.
+- Do not expose port 8787 publicly.
+- Do not hardcode local actors in deployed routes; forward sessions, bearer tokens, API keys, or share tokens.
+- Configure explicit `authConfig.production.allowedOrigins` before production deployment; an empty production origin list should block readiness.
+
+Production red flags:
+
+- `actor: "alice"`, `actor: "bob"`, or another local actor in deployed code.
+- `STEALTHQL_URL` exposed through `NEXT_PUBLIC_*`.
+- Browser code calling the runtime URL directly instead of `/api/stealthql/*`.
+- The StealthQL runtime port exposed publicly.
+- Empty `authConfig.production.allowedOrigins` or redirect/callback origins before deployment.
+- Share proposal or CSV requests posting actor fields in production portals.
+- Raw-id update/delete from browser or mobile code.
+- `STEALTHQL_DATA_DIR` inside the repo or deploy artifact.

@@ -1,0 +1,65 @@
+{
+  "format": "stealthql.schema-request",
+  "version": 1,
+  "mode": "custom",
+  "appName": "Client Portal",
+  "tables": [
+    {
+      "name": "Clients",
+      "searchIndexes": {
+        "default": [
+          "Name"
+        ]
+      },
+      "columns": [
+        {
+          "name": "Name",
+          "type": "text",
+          "required": true,
+          "indexed": true
+        },
+        {
+          "name": "Email",
+          "type": "email",
+          "private": true
+        },
+        {
+          "name": "Status",
+          "type": "status",
+          "defaultValue": "active"
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "searchIndexes": {
+        "default": [
+          "Name"
+        ]
+      },
+      "columns": [
+        {
+          "name": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "Client Id",
+          "type": "text",
+          "required": true,
+          "indexed": true
+        },
+        {
+          "name": "Budget",
+          "type": "money"
+        },
+        {
+          "name": "Internal Notes",
+          "type": "longText",
+          "private": true
+        }
+      ]
+    }
+  ],
+  "serviceAccounts": []
+}

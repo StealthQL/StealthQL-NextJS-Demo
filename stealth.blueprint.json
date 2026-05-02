@@ -1,0 +1,126 @@
+{
+  "auth": {
+    "actorMapping": {
+      "email": "users.email",
+      "id": "users.id",
+      "orgIds": "memberships.orgId",
+      "roles": "memberships.role"
+    },
+    "csrf": {
+      "allowMissingOriginWithFetchMetadata": true,
+      "requireOriginForUnsafeMethods": true
+    },
+    "hostedAuth": {
+      "anonymousUsers": true,
+      "emailOtp": true,
+      "emailPassword": true,
+      "emailVerification": true,
+      "magicLink": true,
+      "oauth": [
+        "google",
+        "github"
+      ],
+      "passwordReset": true,
+      "refreshTokenRotation": true
+    },
+    "localEmulator": {
+      "enabled": true,
+      "invites": true,
+      "magicLinks": true,
+      "signInAs": true,
+      "testUsers": true
+    },
+    "memberContract": {
+      "factors": [
+        "magic",
+        "sms",
+        "totp"
+      ],
+      "fields": {
+        "disabledAt": "disabledAt",
+        "email": "email",
+        "emailVerifiedAt": "emailVerifiedAt",
+        "id": "id",
+        "name": "name",
+        "phone": "phone",
+        "phoneVerifiedAt": "phoneVerifiedAt",
+        "signedUpAt": "signedUpAt",
+        "status": "status",
+        "suspendedAt": "suspendedAt",
+        "twoFactorRequired": "twoFactorRequired"
+      },
+      "membershipFields": {
+        "disabledAt": "disabledAt",
+        "id": "id",
+        "invitedAt": "invitedAt",
+        "joinedAt": "joinedAt",
+        "orgId": "orgId",
+        "role": "role",
+        "status": "status",
+        "suspendedAt": "suspendedAt",
+        "twoFactorRequired": "twoFactorRequired",
+        "userId": "userId"
+      },
+      "membershipTable": "memberships",
+      "requiredFactors": 2,
+      "statuses": {
+        "active": "active",
+        "deleted": "deleted",
+        "disabled": "disabled",
+        "invited": "invited",
+        "suspended": "suspended"
+      },
+      "userTable": "users"
+    },
+    "mode": "capsule-native",
+    "oauth": {
+      "allowedCallbackOrigins": []
+    },
+    "organizations": {
+      "adminRole": "admin",
+      "defaultRole": "member",
+      "membershipTable": "memberships",
+      "roleField": "role",
+      "table": "organizations",
+      "userTable": "users"
+    },
+    "production": {
+      "allowedOrigins": [],
+      "allowedRedirectOrigins": [],
+      "requireHttps": true
+    },
+    "sessions": {
+      "accessTokenMinutes": 60,
+      "cookieName": "stealth_session",
+      "refreshTokenDays": 30,
+      "refreshTokenRotation": true,
+      "sameSite": "Lax",
+      "secureCookies": true
+    },
+    "setupGoal": "email/password, magic links, local actors, invites, organizations, roles, and sessions"
+  },
+  "description": "Organizations, users, memberships, projects, invoices, local auth, magic links, invites, roles, policy tests, sync shapes, and share demos.",
+  "generatedAt": "setup-time",
+  "label": "SaaS app",
+  "localActors": [
+    "anonymous",
+    "alice",
+    "bob",
+    "support"
+  ],
+  "policies": [
+    "organizations",
+    "users",
+    "memberships",
+    "projects",
+    "invoices"
+  ],
+  "preset": "saas",
+  "tables": [
+    "organizations",
+    "users",
+    "memberships",
+    "projects",
+    "invoices"
+  ]
+}
