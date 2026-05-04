@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createStealthNextClient } from "stealthql/next/client";
 import type { StealthRow } from "stealthql/next/client";
 
 type TableState = Record<string, StealthRow[]>;
@@ -12,9 +11,14 @@ export default function StealthqlDemo() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const stealth = createStealthNextClient({ actor });
-    Promise.all(["organizations", "memberships", "projects", "invoices"].map((table) => stealth.query(table)))
-      .then((payloads) => setState(Object.fromEntries(payloads.map((payload) => [payload.table ?? "unknown", payload.rows ?? []]))))
+    setError("");
+    fetch(`/api/demo/tables-${actor}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(payload?.error ?? response.statusText);
+        return payload;
+      })
+      .then((payload) => setState(payload.tables ?? {}))
       .catch((nextError: unknown) => setError(nextError instanceof Error ? nextError.message : String(nextError)));
   }, [actor]);
 

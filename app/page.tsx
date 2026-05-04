@@ -24,12 +24,13 @@ type Scene = {
   run: () => Promise<{ status: number; body: any }>;
 };
 
-const API = "/api/stealthql";
+const DEMO_API = "/api/demo";
 
-async function call(path: string, init?: RequestInit) {
-  const res = await fetch(`${API}/${path}`, {
+async function callDemo(scene: string, init?: RequestInit) {
+  const res = await fetch(`${DEMO_API}/${scene}`, {
     ...init,
     headers: { "content-type": "application/json", ...(init?.headers || {}) },
+    cache: "no-store",
   });
   let body: any;
   try { body = await res.json(); } catch { body = null; }
@@ -47,7 +48,7 @@ const scenes: Scene[] = [
       "She owns the data. She sees everything: customer, amount, status, and the private founder note.",
     buttonLabel: "Read as Alice",
     expected: "allowed",
-    run: () => call("state?actor=alice&table=invoices"),
+    run: () => callDemo("alice"),
   },
   {
     id: "support-direct",
@@ -59,7 +60,7 @@ const scenes: Scene[] = [
       "Support has no membership in Alice's org. No share. No scope. The capsule policy sees nothing it can return.",
     buttonLabel: "Read as Support",
     expected: "blocked",
-    run: () => call("state?actor=support&table=invoices"),
+    run: () => callDemo("support-direct"),
   },
   {
     id: "share-read",
@@ -71,8 +72,7 @@ const scenes: Scene[] = [
       "Three fields only — id, customer, status. Amounts and the private note are stripped at the policy boundary, not in the UI.",
     buttonLabel: "Open share as Support",
     expected: "allowed",
-    run: () =>
-      call("shares/supportRedactedAcme/read?actor=support"),
+    run: () => callDemo("share-read"),
   },
   {
     id: "attack-sql",
@@ -85,11 +85,7 @@ const scenes: Scene[] = [
     buttonLabel: "Run SELECT as Support",
     attack: true,
     expected: "blocked",
-    run: () =>
-      call("sql?actor=support", {
-        method: "POST",
-        body: JSON.stringify({ sql: "select * from invoices" }),
-      }),
+    run: () => callDemo("attack-sql"),
   },
   {
     id: "attack-revoked",
@@ -102,8 +98,7 @@ const scenes: Scene[] = [
     buttonLabel: "Read revoked share",
     attack: true,
     expected: "blocked",
-    run: () =>
-      call("shares/supportRedactedAcmeRevoked/read?actor=support"),
+    run: () => callDemo("attack-revoked"),
   },
   {
     id: "attack-expired",
@@ -116,8 +111,7 @@ const scenes: Scene[] = [
     buttonLabel: "Read expired share",
     attack: true,
     expected: "blocked",
-    run: () =>
-      call("shares/supportRedactedAcmeExpired/read?actor=support"),
+    run: () => callDemo("attack-expired"),
   },
 ];
 
@@ -208,7 +202,7 @@ export default function Page() {
   const [ledger, setLedger] = useState<LedgerEvent[]>([]);
 
   const refreshLedger = useCallback(async () => {
-    const res = await call("events?actor=alice&limit=12");
+    const res = await callDemo("ledger");
     if (res.body?.events) setLedger(res.body.events);
   }, []);
 
