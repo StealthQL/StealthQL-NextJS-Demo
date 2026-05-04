@@ -239,7 +239,7 @@ export default function Page() {
         <header className="hero">
           <span className="eyebrow">StealthQL · Live Demo</span>
           <h1>
-            Support is <span className="accent">blind.</span>
+            Support is <span className="accent">blind</span>
           </h1>
           <p className="lede">
             Your customer support team should be able to help. Not see everything.
